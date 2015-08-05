@@ -12,6 +12,8 @@ max_work_experience = 4
 # On a scale from 0 to max_coding_ability.
 max_coding_ability = 4
 
+max_business_ability = 4
+
 # Field: the maximum number of projects that we are creating.
 # Note: this set high, and doesn't need to change unless there are
 # more than 250 projects that students are allowed to choose from.
@@ -21,8 +23,8 @@ num_valid_projects = 250
 number_project_rankings = 10
 
 # Field: number of students on each team.
-num_MBAs = 2
-num_MEngs = 2
+capacity = 5
+capacity_w = 6
 
 [files]
 # File to use for input. 

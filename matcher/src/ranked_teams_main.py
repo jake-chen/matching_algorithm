@@ -70,9 +70,9 @@ if (__name__ == "__main__"):
 	configParser.read(configFilePath)
 
 	project_id_mappings = configParser.get('files', 'project_id_mappings')
-	num_MBAs = configParser.getint('valid_values', 'num_MBAs')
-	num_MEngs = configParser.getint('valid_values', 'num_MEngs')
-	team_size = num_MBAs + num_MEngs
+	capacity = configParser.getint('valid_values', 'capacity')
+	capacity_w = configParser.getint('valid_values', 'capacity_w')
+	team_size = capacity
 
 	# Creating the annealer with our energy and move functions.
 	annealer = Annealer(pg.energy, pg.move)

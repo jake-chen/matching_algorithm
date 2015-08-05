@@ -89,7 +89,7 @@ def greedy_solutions_and_goodness(students, feasible_projects, num_times = 1000)
 		for i in range (0, num_times):
 			#Reset the feasible projects.
 			for project in feasible_projects:
-				project.students = []
+				project.reset()
 			
 			cur_sol = initial_solution.greedy_initial_solution_and_fill_unmatched(students, feasible_projects)
 			print "Greedy solution " + str(i) + ":"
@@ -122,11 +122,11 @@ def do_greedy_initial_solutions(students, all_projects, annealer, project_id_map
 		configParser.read(configFilePath)
 
 		# Declaring valid values for all fields.
-		num_MBAs = configParser.getint('valid_values', 'num_MBAs')
-		num_MEngs = configParser.getint('valid_values', 'num_MEngs')
+		capacity = configParser.getint('valid_values', 'capacity')
+		capacity_w = configParser.getint('valid_values', 'capacity_w')
 
 		feasible_projects = util.create_feasible_projects(students, all_projects, verbose)
-		util.input_checks(students, feasible_projects, num_MBAs, num_MEngs, project_id_mappings, sorted = False) 
+		util.input_checks(students, feasible_projects, capacity, capacity_w, project_id_mappings, sorted = False) 
 
 		sol = greedy_solutions_and_goodness(students, feasible_projects)
 		print [p.ID for p in sol]

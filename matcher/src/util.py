@@ -155,11 +155,11 @@ def generate_all_projects():
 	configFilePath = r'config.txt'
 	configParser.read(configFilePath)
 
-	num_MBAs = configParser.getint('valid_values', 'num_MBAs')
-	num_MEngs = configParser.getint('valid_values', 'num_MEngs')
+	capacity = configParser.getint('valid_values', 'capacity')
+	capacity_w = configParser.getint('valid_values', 'capacity_w')
 	projects_lst = []
 	for ID in classes.vals_valid_projects:
-		p = Project(ID, num_MBAs, num_MEngs)
+		p = Project(ID, capacity, capacity_w)
 		projects_lst.append(p)
 	return projects_lst
 
@@ -226,6 +226,7 @@ def create_feasible_projects(students, projects, verbose = False):
 
 	'''
 	insufficient_IDs = []
+        feasible_IDs_tups = []
 	for p in projects:
 		matched = filter(lambda s: p.ID in s.project_rankings, students)
 		if (verbose):
@@ -235,32 +236,31 @@ def create_feasible_projects(students, projects, verbose = False):
 		  or s.degree_pursuing == 0]
 		MEngs_ranked = [s for s in matched if s.degree_pursuing == "MEng" 
 		  or s.degree_pursuing == 1]
+                HT_ranked = [s for s in matched if s.degree_pursuing =="HT" or s.degree_pursuing == 2]
+                CM_ranked = [s for s in matched if s.degree_pursuing == "CM" or s.degree_pursuing == 3]
+                num_ranked = len(MBAs_ranked) + len(MEngs_ranked) + len(HT_ranked) + len(CM_ranked)
 		if (verbose):
 			print "MBAs" + str([s.ID for s in MBAs_ranked])
 			print "MEngs" + str([s.ID for s in MEngs_ranked])
-			print "p.num_MBAs is " + str(p.num_MBAs)
-			print "p.num_MEngs is " + str(p.num_MEngs)
+                        print "HTs" + str([s.ID for s in HT_ranked])
+                        print "CMs" + str([s.ID for s in CM_ranked])
 			print str(len(MBAs_ranked)) + " MBAs ranked this project."
 			print str(len(MEngs_ranked)) + " MEngs ranked this project."
-			print str(len(MBAs_ranked)) + " < " + str(p.num_MBAs) + ":",
-			print str(len(MEngs_ranked)) + " < " + str(p.num_MEngs) + ":",
-			comparison = "The comparison that we are checking: "
-			var_one = len(MBAs_ranked) < p.num_MBAs
-			var_two = len(MEngs_ranked) < p.num_MEngs
-			var = var_one or var_two
-			comparison += str(var)
-			print comparison
-	 
-	 	if ((len(MBAs_ranked) < p.num_MBAs) or (len(MEngs_ranked) < p.num_MEngs)):
+                        print str(len(HT_ranked)) + "HTs ranked this project."
+                        print str(len(CM_ranked)) + "CMs ranked this project."
+	 	if (len(MBAs_ranked) + len(MEngs_ranked) + len(HT_ranked) + len(CM_ranked) < p.capacity):
 	 		if (verbose):
-	 			string = "Not enough MBAs or MEngs ranked project "
+	 			string = "Not enough students ranked project "
 	 			string += str(p.ID)
 	 			string += " for it to be included."
 	 			print string
 	 		insufficient_IDs.append(p.ID)
-
-	projects = filter(lambda p: not(p.ID in insufficient_IDs), projects)
-	return projects
+                else:
+                        feasible_IDs_tups.append((p.ID,num_ranked))
+        def popularity (p):
+                return p[1]
+        feasible_IDs_tups.sort(key = popularity, reverse = True)
+	return [get_project_from_ID(x[0],projects) for x in feasible_IDs_tups]
 
 def get_num_ranked(p, students):
 	'''
@@ -310,9 +310,9 @@ def create_students_from_input(file):
 		will fail.
 		Currently assumes:
 			- 1 column for ID
-			- 1 column for degree degree_pursuing
-			- 1 column for cs_ug
-			- 1 column for coding coding_ability
+			- 1 column for degree_pursuing
+			- 1 column for business_ability
+			- 1 column for coding_ability
 			- 1 column for work experience
 			- classes.number_project_rankings columns for project rankings
 			- 1 column for first name
@@ -340,7 +340,7 @@ def create_students_from_input(file):
 			student_ids.append(ID)
 			 
 			degree_pursuing = student[1]
-			cs_ug = student[2]
+			business_ability = student[2]
 			coding_ability = student[3]
 			num_yrs_work_exp = student[4]
 
@@ -350,7 +350,7 @@ def create_students_from_input(file):
 			last_name = student[5 + classes.number_project_rankings + 1]
 			name = first_name + " " + last_name
 
-			a = Student(name, ID, degree_pursuing, cs_ug, coding_ability, 
+			a = Student(name, ID, degree_pursuing, business_ability, coding_ability, 
 				num_yrs_work_exp, rankings)
 			students_lst.append(a)
 
@@ -365,7 +365,7 @@ def create_students_from_input(file):
 			raise InputError(error)
 
 
-def input_checks(students, projects, num_MBAs, num_MEngs,
+def input_checks(students, projects, capacity, capacity_w,
                  project_id_mappings, sorted = False):
 	'''
 		num_MBAs and num_MEngs are the numbers required per team
@@ -377,32 +377,13 @@ def input_checks(students, projects, num_MBAs, num_MEngs,
 	elif (len(students) == 0):
 		raise FieldError ("There are no students.")
 
-	team_size = num_MBAs + num_MEngs
-
-	MBAs = filter(lambda student: student.degree_pursuing == 0 or 
-		student.degree_pursuing == "MBA", students)
-	MEngs = filter(lambda student: student.degree_pursuing == 1 or 
-		student.degree_pursuing == "MEng", students)
-
-	# Make sure that there are no overlapping student IDs.
-	MBA_IDs = [s.ID for s in MBAs]
-	MEng_IDs = [s.ID for s in MEngs]
-
-	if (not (are_unique(MBA_IDs, MEng_IDs))):
-		raise FieldError('Student ID lists must not overlap.')
+	team_size = capacity
 
 	# Make sure that team size is not zero.
 	if (team_size == 0):
 		raise FieldError('Team size cannot be 0.')
 
-	if (len(MBAs) < len(MEngs)):
-	 	smaller = MBAs
-	 	num_req_per_team = num_MBAs
-	else:
-	 	smaller = MEngs
-	 	num_req_per_team = num_MEngs
-	
-	num_teams = len(smaller)/num_req_per_team
+	num_teams = len(students)/team_size
 
 	if (len(project_id_mappings) == 0):
 		error = "Please enter a filename for the project_id_mappings"
