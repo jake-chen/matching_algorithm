@@ -78,14 +78,15 @@ if (__name__ == "__main__"):
 	annealer = Annealer(pg.energy, pg.move)
 	all_projects = util.generate_all_projects()
 	students = util.create_students_from_input(input_file)
-	
+	feasibles = util.create_feasible_projects(students, all_projects)
+
 	sol = test.do_greedy_initial_solutions(students, all_projects, annealer, project_id_mappings)
 	use_file = False
 	use_diversity = False
 	if (set_output_file):
-		test.manual_schedule(use_file, students, sol, annealer, use_diversity, input_file, output_file)
+		test.manual_schedule(use_file, students, sol, feasibles,  annealer, use_diversity, input_file, output_file)
 	else:
-		test.manual_schedule(use_file, students, sol, annealer, use_diversity, input_file)
+		test.manual_schedule(use_file, students, sol, feasibles,  annealer, use_diversity, input_file)
 
 	string =  "Program completed in " + str((time.time() - start_time)/60)
 	string += " minutes."

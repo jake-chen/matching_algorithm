@@ -44,7 +44,7 @@ def move(state, verbose = True, super_verbose = False):
 	'''
 	projects = state[0]
 	inv_cov_mat_tup = state[1]
-
+        feasibles = state[2]
 	project_one = util.random_project(projects, [], True)
 	project_two = util.random_project(projects, [], True)
 
@@ -81,8 +81,8 @@ def move(state, verbose = True, super_verbose = False):
 	# NOTE: this is problematic if teams aren't full.
 	# 38
 	# Guarantee that the students are of the same type.
-	while (not (student_one.degree_pursuing == student_two.degree_pursuing)):
-		student_two = util.random_student(second_team)
+	# while (not (student_one.degree_pursuing == student_two.degree_pursuing)):
+	#	student_two = util.random_student(second_team)
 
 	# Remove the students from their respective teams
 	first_team.students.remove(student_one)
@@ -106,7 +106,7 @@ def move(state, verbose = True, super_verbose = False):
 		for p in projects:
 		 	print str(p.ID) + ": " + str([s.ID for s in p.students])
 
-	state_after_change = (projects, inv_cov_mat_tup)
+	state_after_change = (projects, inv_cov_mat_tup, feasibles)
 
 	print energy(state_after_change)
 

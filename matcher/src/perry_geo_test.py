@@ -14,7 +14,7 @@ class CompError(Exception):
 	def __str__(self):
 		return repr(self.val)
 
-def manual_schedule(use_file, students, sol, annealer, use_diversity, filename, output_file = "output.csv"):
+def manual_schedule(use_file, students, sol, feasible_projects,  annealer, use_diversity, filename, output_file = "output.csv"):
 	'''
 		Parameters
 		----------
@@ -43,10 +43,11 @@ def manual_schedule(use_file, students, sol, annealer, use_diversity, filename, 
 		error = "There is only one team, so we cannot perform simulated annealing."
 		raise CompError(error)
 
-	state = (sol, inv_cov_mat_tup)
+	state = (sol, inv_cov_mat_tup, feasible_projects)
 	print "Initial energy is " + str(pg.energy(state))
 	# Manually set the annealing schedule.
-	state, e = annealer.anneal(state, 10000, 0.01, 54000, updates=0)
+        # state, e = annealer.anneal(state, 10000, 0.01, 54000, updates=0)
+        state, e = annealer.anneal(state, 12500, 0.01, 108000, updates=0)
 
 	print "Final energy is " + str(e)
 	if (use_diversity):

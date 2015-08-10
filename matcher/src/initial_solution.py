@@ -174,7 +174,7 @@ def greedy_initial_solution(original_students, original_feasible_projects, verbo
 
 	return (feasible_projects, unmatched_students)
 
-def greedy_initial_solution_team_first(original_students, original_feasible_projects, verbose = False):
+def greedy_initial_solution_team_first(original_students, original_feasible_projects, offset, verbose = False):
         ''' 
                 Greedily matches students to projects in a team-first strategy, where
                 lower-popularity projects are filled first to minimize the chance that a student is
@@ -192,11 +192,13 @@ def greedy_initial_solution_team_first(original_students, original_feasible_proj
         num_required_teams = len(students)/feasible_projects[0].capacity
         print num_required_teams
         #iterate in reverse popularity order
-        for project in reversed(feasible_projects[num_required_teams + 11:] + feasible_projects[:num_required_teams + 10]):
+        for project in reversed(feasible_projects[num_required_teams + offset + 1:] + feasible_projects[:num_required_teams + offset]):
                 #get all the students interested in this project who have yet to be matched
                 unmatched_interested =  [s for s in filter(lambda s: project.ID in s.project_rankings and not s.ID in matched_students, students)]
                 if len(unmatched_interested) >= project.capacity:
-                        selected_unmatched = np.random.choice(unmatched_interested, project.capacity, replace=False).tolist()
+                        unmatched_interested.sort(key = project.inv_get_ranking)
+                        #get the students who want this project most and put them on this project
+                        selected_unmatched = unmatched_interested[:5]
                         for s in selected_unmatched:
                                 project.add_student(s, False)
                         remove_students_from_projects(project.students, feasible_projects, project.ID)

@@ -24,7 +24,7 @@ vals_degree_pursuing = { 0 : "MBA", 1 : "MEng", 2:"HT", 3:"CM"}
 # Valid IDs for our projects.
 num_valid_projects = configParser.getint('valid_values', 'num_valid_projects')
 vals_valid_projects = range(1, (2*num_valid_projects)+1)
-
+vals_valid_projects = range(1,2001)
 #duplicate projects for the 2 teams/project constraint
 number_project_rankings = configParser.getint('valid_values', 'number_project_rankings')
 alg_number_project_rankings = 2*number_project_rankings
@@ -290,6 +290,7 @@ class Student(object):
 			--------
 			cost: int 
 		'''
+                rank = (rank + 1)/2
 		if (not(rank <= number_project_rankings)):
 			return 1000000000000000
 		else:
@@ -527,6 +528,9 @@ class Project(object):
                 self._waiting_students = []
                 self._remaining_spots = self._capacity
 
+        def inv_get_ranking(self, student):
+                return student.get_ranking(self._ID)
+
 	def is_empty(self):
 		'''
 			Returns a bool indicating if the Project is empty.
@@ -558,7 +562,7 @@ class Project(object):
 		dict_key_vals = tup[1]
 		diversity = 0
 		num_students = len(self._students)
-		if (num_students < self.num_MBAs + self.num_MEngs):
+		if (num_students < self._capacity):
 			error = "Students on project " + str(self.ID) + " are "
 			error += str([s.ID for s in self.students]) + ". This project is not full."
 			error += " Cannot calculate diversity."

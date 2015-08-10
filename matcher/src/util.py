@@ -438,7 +438,7 @@ def print_final_solution(state, use_diversity, output_file):
 		dict_project_names = read_project_ids_and_names_from_input()
 		output = []
 		print "Final Solution:"
- 		(projects, inv_cov_mat_tup) = state
+ 		(projects, inv_cov_mat_tup, feasibles) = state
  		all_avg_ranks = []
 		for p in projects:
 			cur_project_output = ""
@@ -500,9 +500,9 @@ def list_unranked_students(state):
 			# Get the student's rank of this project.
 			rank = student.get_ranking(p.ID)
 			# The student didn't rank this
-			if (rank > classes.number_project_rankings):
+			if (rank > classes.alg_number_project_rankings):
 				print student.name + " (" + str(student.degree_pursuing) + "):"
-				for i in range (0, len(student.project_rankings)):
+				for i in range (0, len(student.project_rankings), 2):
 					print "Rank " + str(i + 1) + ":",
 					rank_i_project_id = student.project_rankings[i]
 					print dict_project_names[rank_i_project_id]
@@ -536,7 +536,7 @@ def list_low_interest_students(state):
 				statement += str(dict_project_names[p.ID]) + "."
 				print statement
 				print "This student's rankings are: "
-				for i in range (0, len(student.project_rankings)):
+				for i in range (0, len(student.project_rankings),2):
 					print "Rank " + str(i + 1) + ":",
 					rank_i_project_id = student.project_rankings[i]
 					print dict_project_names[rank_i_project_id]
