@@ -130,6 +130,7 @@ def greedy_initial_solution(original_students, original_feasible_projects, verbo
 						if (verbose):
 							print "     Not successful. "
 
+                                        #print ("Project " + str(cur_project.ID) + " has " + str(cur_project.remaining_spots) + " spots left ")
 					# If the project is full and its students havent been 
 					# removed yet, then remove it and its students.
 					if (not (cur_project.has_remaining_spots())):
@@ -287,7 +288,7 @@ def remove_students_from_projects(students_to_remove, projects, ID, remove_from_
 			for student in students_to_remove:
 				# If the student was on the project, remove it.
 				if student in project.students:
-					project.students.remove(student)
+					project.remove_student(student)
 
 				# If the student was waiting, remove it.
 				if student in objects_waiting_students:

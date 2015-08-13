@@ -288,6 +288,13 @@ def sort_projects_by_demand(students, projects, tup = False):
 	else:
 		return projects
 
+def safe_project_swap(p1, p2):
+        p1s = p1.students
+        p2.reset()
+        for s in p1s:
+                p2.add_student(s, True)
+        p1.reset()
+
 def are_unique(l1, l2):
 	''' 
 		Checks if two given lists are unique.
@@ -443,7 +450,7 @@ def print_final_solution(state, use_diversity, output_file):
 		for p in projects:
 			cur_project_output = ""
 			if (not(use_diversity)):
-				project_name = dict_project_names[p.ID]
+				project_name = dict_project_names[p.ID % classes.num_valid_projects]
 				cur_project_output = cur_project_output + project_name
 		 		print project_name + ": " + str([s.ID for s in p.students])
 		 	print "------------------------------"
@@ -494,11 +501,11 @@ def list_unranked_students(state):
 	print
 	print "The following students were assigned to projects that they did not rank:"
 	print "-------------------------------------------------------------------------"
-	(projects, inv_cov_mat_tup) = state
+	(projects, inv_cov_mat_tup, feasibles) = state
 	for p in projects:
 		for student in p.students:
 			# Get the student's rank of this project.
-			rank = student.get_ranking(p.ID)
+			rank = student.get_ranking(p.ID % classes.num_valid_projects)
 			# The student didn't rank this
 			if (rank > classes.alg_number_project_rankings):
 				print student.name + " (" + str(student.degree_pursuing) + "):"
@@ -523,17 +530,17 @@ def list_low_interest_students(state):
 	stars = "***************************************************"
 	stars += "**********************************"
 	print stars
-	(projects, inv_cov_mat_tup) = state
+	(projects, inv_cov_mat_tup, feasibles) = state
 	for p in projects:
 		for student in p.students:
 			# Get the student's rank of this project.
-			rank = student.get_ranking(p.ID)
+			rank = (student.get_ranking(p.ID % classes.num_valid_projects)+1)/2
 			# The student didn't rank this
 			if (rank > threshold):
 				print student.name + " (" + str(student.degree_pursuing) + "):"
 				print "------------------------"
 				statement = "Assigned to rank " + str(rank) + ": "
-				statement += str(dict_project_names[p.ID]) + "."
+				statement += str(dict_project_names[p.ID % classes.num_valid_projects]) + "."
 				print statement
 				print "This student's rankings are: "
 				for i in range (0, len(student.project_rankings),2):

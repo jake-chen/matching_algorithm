@@ -379,6 +379,13 @@ class Project(object):
 			self._ID = val
 			existing_project_IDs.append(val)
 
+
+        def force_ID(self, val):
+                '''
+                    Force the project ID to be val.
+                '''
+                self._ID = val
+
 	ID = property(get_ID, set_ID,
 				  doc = "Get and set the team's ID, if not in the existing IDs.")
         
@@ -523,6 +530,12 @@ class Project(object):
 			# Add the tuple to the waiting students list.
 			self._waiting_students.append(tup)
 
+                        
+        def remove_student(self, student):
+                self._students.remove(student)
+                self._remaining_spots += 1
+
+
         def reset(self):
                 self._students = []
                 self._waiting_students = []
@@ -569,9 +582,9 @@ class Project(object):
 			raise ValueError(error)
 		else:
 			attributes = []
-			for student in self._students:
+                        for student in self._students:
 				attributes.append(dict_key_vals[student.ID])
-			# Make a list of indices in attributes (using range)
+                        # Make a list of indices in attributes (using range)
 			indices = range(len(attributes))
 
 			# Generate all possible combinations of those (not permutations)
@@ -584,7 +597,6 @@ class Project(object):
 				d = distance.do_python_distance_data(fst_properties,
 					snd_properties, inv_cov_mat)
 				diversity += d
-
 	 	return diversity
 
 
