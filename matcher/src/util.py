@@ -522,11 +522,17 @@ def print_final_solution(state, use_diversity, output_file):
 		print "Completed annealing and wrote results to " + output_file + "!"
 		print
                 
-                hist = np.histogram(rankings_list,bins=[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5])
+                hist = np.histogram(rankings_list,bins=[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,100])
 
                 print "Ranking Histogram:"
                 for i in range(len(hist[0])):
-                        print "Rank " + str(i+1) + ": " + ("*"*hist[0][i])
+                        if i < 10:
+                                print "Rank " + str(i+1) + ": " + ("*"*hist[0][i])
+                        else:
+                                print "FAILED: " + ("*"*hist[0][i])
+
+                print
+                print
                 #plt.title('Histogram of ')
                 #plt.show()
 
@@ -569,8 +575,6 @@ def list_penalties(state):
         (projects, inv_cov_mat_tup, feasibles, students) = state
         for p in projects:
                 project_name = dict_project_names[p.ID % classes.num_valid_projects]
-                #cur_project_output = cur_project_output + project_name + "\t"
-                cur_project_output.append(project_name)
                 print project_name + ": " + str([s.ID for s in p.students]) + " has the following penalties"
                 print "------------------------------"
                 numerics = []
@@ -579,19 +583,29 @@ def list_penalties(state):
                 programs = [x[0] for x in numerics]
                 b_abilities = [x[1] for x in numerics]
                 c_abilities = [x[2] for x in numerics]
+                no_penalties = True
                 w_exp = [x[3] for x in numerics]
                 if 0 not in programs:
                         print project_name + " has no MBA students"
+                        no_penalties = False
                 if 1 not in programs:
                         print project_name + " has no CS in MEng students"
+                        no_penalties = False
                 if 3 not in c_abilities and 4 not in c_abilities:
                         print project_name + " has no members who rated themselves at least 3 in coding ability."
+                        no_penalties = False
                 #penalty for a lack of business ability
                 if 3 not in b_abilities and 4 not in b_abilities:
                         print project_name + " has no members who rated themselves at least a 3 in business ability."
+                        no_penalties = False
                 #penalty for lack of work experience
                 if 3 not in w_exp and 4 not in w_exp:
                         print project_name + " has no members who have at least a 3 in work experience."
+                        no_penalties = False
+                if no_penalties:
+                        print project_name + " has no penalties!"
+                print
+                print
                 
 
 def list_low_interest_students(state):
