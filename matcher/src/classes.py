@@ -4,30 +4,92 @@ import itertools
 import numpy as np
 
 configParser = ConfigParser.ConfigParser()
-configFilePath = r'config.txt'
-configParser.read(configFilePath)
+max_business_ability =None
+vals_business_ability = None
 
-# Declaring valid values for all fields.
-max_business_ability = configParser.getint('valid_values', 'max_business_ability')
-vals_business_ability = range(0, max_business_ability+1)
-
-max_work_experience = configParser.getint('valid_values', 'max_work_experience')
-vals_work_experience = range(0, max_work_experience+1)
+max_work_experience = None
+vals_work_experience = None
 
 # 0 = lowest, 4 = most
-max_coding_ability = configParser.getint('valid_values', 'max_coding_ability')
-vals_coding_ability = range(0, max_coding_ability+1)
- 
+max_coding_ability = None
+vals_coding_ability = None
+
 # Keep these organized in alphabetical order. 
-vals_degree_pursuing = { 0 : "MBA", 1 : "MEng", 2:"HT", 3:"CM"}
+vals_degree_pursuing = None
 
 # Valid IDs for our projects.
-num_valid_projects = configParser.getint('valid_values', 'num_valid_projects')
-vals_valid_projects = range(1, (2*num_valid_projects)+1)
-vals_valid_projects = range(1,2001)
+num_valid_projects = None
+vals_valid_projects = None
+
 #duplicate projects for the 2 teams/project constraint
-number_project_rankings = configParser.getint('valid_values', 'number_project_rankings')
-alg_number_project_rankings = 2*number_project_rankings
+number_project_rankings = None
+alg_number_project_rankings = None
+
+duplicate_rankings = None
+
+def init_classes(config):
+        global max_business_ability
+        global vals_business_ability
+        global max_work_experience
+        global vals_work_experience
+        global max_coding_ability
+        global vals_coding_ability
+        global vals_degree_pursuing 
+        global num_valid_projects 
+        global vals_valid_projects 
+        global number_project_rankings 
+        global alg_number_project_rankings 
+        global duplicate_rankings
+
+        configFilePath = config.encode('string-escape')
+        configParser.read(configFilePath)
+
+        # Declaring valid values for all fields.
+        try:
+                max_business_ability = configParser.getint('valid_values', 'max_business_ability')
+                vals_business_ability = range(0, max_business_ability+1)
+        except (ConfigParser.Error):
+                max_business_ability = 4
+                vals_business_ability = range(0, max_business_ability+1)
+        try:
+                max_work_experience = configParser.getint('valid_values', 'max_work_experience')
+                vals_work_experience = range(0, max_work_experience+1)
+        except (ConfigParser.Error):
+                max_work_experience = 4
+                vals_work_experience = range(0, max_work_experience+1)
+        # 0 = lowest, 4 = most
+        try:
+                max_coding_ability = configParser.getint('valid_values', 'max_coding_ability')
+                vals_coding_ability = range(0, max_coding_ability+1)
+        except (ConfigParser.Error):
+                max_coding_ability = 4
+                vals_coding_ability = range(0, max_coding_ability + 1)
+
+        # Keep these organized in alphabetical order. 
+        vals_degree_pursuing = { 0 : "MBA", 1 : "MEng", 2:"HT", 3:"CM"}
+
+        # Valid IDs for our projects.
+        try:
+                num_valid_projects = configParser.getint('valid_values', 'num_valid_projects')
+        except (ConfigParser.Error):
+                num_valid_projects = 250
+
+        #duplicate projects for the 2 teams/project constraint
+        try:
+                number_project_rankings = configParser.getint('valid_values', 'number_project_rankings')
+                duplicate_rankings = configParser.getboolean('valid_values', 'duplicate_rankings')
+                if duplicate_rankings:
+                        alg_number_project_rankings = 2*number_project_rankings
+                else:
+                        alg_number_project_rankings = number_project_rankings
+        except (ConfigParser.Error):
+                number_project_rankings = 10
+                duplicate_rankings = False
+                alg_number_project_rankings = 10
+        if duplicate_rankings:
+                vals_valid_projects = range(1, (2*num_valid_projects) + 1)
+        else :
+                vals_valid_projects = range(1, num_valid_projects + 1)
 
 
 existing_student_IDs = []
@@ -53,9 +115,11 @@ class Student(object):
 	global vals_coding_ability
 	global vals_valid_projects
 	global number_project_rankings
+        global alg_number_project_rankings
+        global duplicate_rankings
 
 	def __init__ (self, name, ID, degree_pursuing, bus_abil, cod_abil, num_yrs_work_exp,
-				   project_rnks, is_normalized=False, rankings_can_be_empty = False):
+				   project_rnks, bin_field = 0, is_normalized=False, rankings_can_be_empty = False):
 		''' 
 			Parameters
 			----------
@@ -70,6 +134,8 @@ class Student(object):
 			project_rnks = a list of project IDs (int list).
 			    Ints are the project IDs. There are number_project_rankings IDs.
 			    Ranked in order of preference.
+                        binary_field = any binary field you wish. Possible examples:
+                           Local/not-local, male/female, was a CS undergrad/was not, etc. 
 			is_normalized = indicates if values are normalized (bool).
 			rankings_can_be_empty = indicates if the ranking list can be empty (bool).
 			    (This allows us to construct students step by step.)
@@ -79,9 +145,10 @@ class Student(object):
 		    Student object with given parameters as attributes.
 
 		'''
-		self._name				 	  = name
-		self._ID				 	  = ID
-		
+                self._name = name
+		self._ID = ID
+		self.set_bin_field(bin_field)
+
 		if (not(is_normalized)):
 			self.set_valid_properties(degree_pursuing, cod_abil, bus_abil, 
 										num_yrs_work_exp, project_rnks, rankings_can_be_empty)
@@ -110,6 +177,16 @@ class Student(object):
 		self._ID = val
 
 	ID = property(get_ID, set_ID, doc = "Get and set student ID.")
+
+        def get_bin_field(self):
+                return self.bin_field
+
+        def set_bin_field(self, val):
+                if not(val in [0,1]):
+                        raise FieldError("Binary field must be either 0 or 1.")
+                self._bin_field = val
+
+        bin_field = property(get_name, set_name, doc = "Get and set the binary field.")
 
 	def get_degree_pursuing(self):
 		return self._degree_pursuing
@@ -178,7 +255,10 @@ class Student(object):
 		'''
 			Checks if the input value is valid before setting it.
 		'''
-                alg_project_rnk =np.asarray(list(itertools.chain.from_iterable((e,e+num_valid_projects) for e in val)))
+                if duplicate_rankings:
+                        alg_project_rnk = np.asarray(list(itertools.chain.from_iterable((e,e+num_valid_projects) for e in val)))
+                else:
+                        alg_project_rnk = val
 		self.check_valid_project_rankings(alg_project_rnk, rankings_can_be_empty)
 		self._project_rankings = alg_project_rnk
 
@@ -230,6 +310,7 @@ class Student(object):
 		lst.append(self._coding_ability)
 		lst.append(self._work_experience)
 		lst.append(self._project_rankings)
+                lst.append(self._bin_field)
 		return lst
 
 	def get_numerical_student_properties(self):
@@ -251,7 +332,8 @@ class Student(object):
 			raise ValueError("What kind of program is the student pursuing?")
 		lst.append(self._business_ability)
 		lst.append(self._coding_ability)
-		lst.append(self._work_experience)
+                lst.append(self._work_experience)
+                lst.append(self._bin_field)
 		return lst
 
 	def get_ranking(self, project_id): 
@@ -290,7 +372,8 @@ class Student(object):
 			--------
 			cost: int 
 		'''
-                rank = (rank + 1)/2
+                if duplicate_rankings:
+                        rank = (rank + 1)/2
 		if (not(rank <= number_project_rankings)):
 			return 1000000000000000
 		else:

@@ -7,6 +7,7 @@ from classes import CompError
 from classes import Student
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import ConfigParser
 
 student_ids = []
@@ -78,6 +79,13 @@ def random_project(projects, already_picked, reuse, verbose = False):
 		statement += " is " + str(len(projects[rand_index].students))
 		print statement
 	if (not (reuse)):
+                #make sure projects is not completely contained in already_picked
+                containsall = True
+                for p in projects:
+                        if not (p in already_picked):
+                                containsall = False
+                if containsall:
+                        return None
 		project_to_return = projects[rand_index]
 		while (project_to_return in already_picked):
 			rand_index = random_index(len(projects))
@@ -117,6 +125,12 @@ def random_student_lst(student_lst, already_picked, reuse):
 	'''
 	rand_index = random_index(len(student_lst))
 	if (not (reuse)):
+                containsall = True
+                for s in student_lst:
+                        if not (s in already_picked):
+                                containsall = False
+                if containsall:
+                        return None
 		student_to_return = student_lst[rand_index]
 		while (student_to_return in already_picked):
 			rand_index = random_index(len(student_lst))
@@ -138,11 +152,10 @@ def random_two_choice():
 	else:
 		return 0
 
-def generate_all_projects():
+def generate_all_projects(config):
 	'''
 		Creates a project for every ID in classes.valid_projects.
-		Takes the values for number of MBAs per team and number of
-		MEngs per team from config.txt.
+		Takes the values for capacity and wiggle capacity from config.
 
 		Returns:
 		--------
@@ -150,9 +163,8 @@ def generate_all_projects():
 		with the IDs in classes.valid_projects. 
 
 	'''
-
 	configParser = ConfigParser.ConfigParser()
-	configFilePath = r'config.txt'
+	configFilePath = config.encode('string-escape')
 	configParser.read(configFilePath)
 
 	capacity = configParser.getint('valid_values', 'capacity')
@@ -310,7 +322,7 @@ def are_unique(l1, l2):
 	'''
 	return (set(l1).intersection(set(l2)) == set([]))
 
-def create_students_from_input(file):
+def create_students_from_input(file, config):
 	'''
 		There is a check for how many columns are in the student data input file.
 		If the data does not have all of the following information, this function
@@ -324,6 +336,7 @@ def create_students_from_input(file):
 			- classes.number_project_rankings columns for project rankings
 			- 1 column for first name
 			- 1 column for last name
+                        - 1 column for a binary field (fill with 0 if not needed)
 	'''
 	try:
 		data = pd.read_csv(file)
@@ -332,11 +345,17 @@ def create_students_from_input(file):
 		num_rows = shape[0]
 
 		students_lst = []
-
+                configParser = ConfigParser.ConfigParser()
+                configParser.read(config)
+                use_binary_raw = configParser.getboolean("valid_values", "use_binary")
+                if use_binary_raw == True:
+                        use_binary = 1
+                else :
+                        use_binary = 0
 		# Extract rows and create students
 		for i in range(0, num_rows):
 			student = data_array[i,:]
-			if (not(len(student) == classes.number_project_rankings + 7)):
+			if (not(len(student) == classes.number_project_rankings + 7 + use_binary)):
 				error = "Row " + str(i) + " in " + str(file) + " does not have"
 				error += "the number of fields required by the config file."
 				raise InputError(error)
@@ -355,10 +374,12 @@ def create_students_from_input(file):
 			rankings = student[5:(5 + classes.number_project_rankings)]
 			first_name = student[5 + classes.number_project_rankings]
 			last_name = student[5 + classes.number_project_rankings + 1]
-			name = first_name + " " + last_name
-
+                        name = first_name + " " + last_name
 			a = Student(name, ID, degree_pursuing, business_ability, coding_ability, 
 				num_yrs_work_exp, rankings)
+                        if (use_binary_raw):
+                                bin_field = student[5 + classes.number_project_rankings + 2]
+                                a.set_bin_field(bin_field)
 			students_lst.append(a)
 
 		return students_lst
@@ -445,20 +466,25 @@ def print_final_solution(state, use_diversity, output_file):
 		dict_project_names = read_project_ids_and_names_from_input()
 		output = []
 		print "Final Solution:"
- 		(projects, inv_cov_mat_tup, feasibles) = state
+ 		(projects, inv_cov_mat_tup, feasibles, students) = state
+                rankings_list = []
  		all_avg_ranks = []
 		for p in projects:
-			cur_project_output = ""
+			cur_project_output = []
 			if (not(use_diversity)):
 				project_name = dict_project_names[p.ID % classes.num_valid_projects]
-				cur_project_output = cur_project_output + project_name
+				#cur_project_output = cur_project_output + project_name + "\t"
+                                cur_project_output.append(project_name)
 		 		print project_name + ": " + str([s.ID for s in p.students])
 		 	print "------------------------------"
 			ranks = []
 			# NOTE: get ranking returns 100 if the student did not rank the project.
 		 	for student in p.students:
 				print student.name + " (" + str(student.degree_pursuing) + "):",
-				rank = student.get_ranking(p.ID)
+				if classes.duplicate_rankings:
+                                        rank = (student.get_ranking(p.ID)+1)/2
+                                else :
+                                        rank = student.get_ranking(p.ID)
 				if (not(use_diversity)):
 		 			print "Rank:",
 					print rank
@@ -466,12 +492,15 @@ def print_final_solution(state, use_diversity, output_file):
 					print "Attributes: "
 					print str(student.get_numerical_student_properties())
 				print
+                                rankings_list.append(rank)
 				ranks.append(rank)
-				cur_project_output = cur_project_output + student.name + "\t"
+				cur_project_output.append(student.name)
+                        while (len(cur_project_output)-1 < p.capacity_w):
+                                cur_project_output.append("None")
 			avg_project_rank = np.mean(ranks)
 			all_avg_ranks.append(avg_project_rank)
 			output.append(cur_project_output)
-			if (use_diversity):
+                        if (use_diversity):
 				print "Diversity: " + str(p.calculate_diversity(inv_cov_mat_tup))
 			else:
 				print "Average project rank: " + str(avg_project_rank)
@@ -482,14 +511,24 @@ def print_final_solution(state, use_diversity, output_file):
 			statement = "This solution had a " + str(np.mean(all_avg_ranks))
 			statement +=" rank on average."
 			print statement
-		numpy_version_of_output = np.array(output)
-		dataframe_output = pd.DataFrame(numpy_version_of_output, columns = [""])
+		numpy_version_of_output = np.asarray(output)
+                cols = ["Company"]
+                for i in range (projects[0].capacity_w):
+                        cols.append("Student %s" %(str(i+1)))
+		dataframe_output = pd.DataFrame(numpy_version_of_output, columns=cols)
 		dataframe_output.to_csv(output_file, sep=',', index = False)
 		print
 		print
 		print "Completed annealing and wrote results to " + output_file + "!"
 		print
+                
+                hist = np.histogram(rankings_list,bins=[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5])
 
+                print "Ranking Histogram:"
+                for i in range(len(hist[0])):
+                        print "Rank " + str(i+1) + ": " + ("*"*hist[0][i])
+                #plt.title('Histogram of ')
+                #plt.show()
 
 def list_unranked_students(state):
 	'''
@@ -501,7 +540,7 @@ def list_unranked_students(state):
 	print
 	print "The following students were assigned to projects that they did not rank:"
 	print "-------------------------------------------------------------------------"
-	(projects, inv_cov_mat_tup, feasibles) = state
+	(projects, inv_cov_mat_tup, feasibles, students) = state
 	for p in projects:
 		for student in p.students:
 			# Get the student's rank of this project.
@@ -509,15 +548,51 @@ def list_unranked_students(state):
 			# The student didn't rank this
 			if (rank > classes.alg_number_project_rankings):
 				print student.name + " (" + str(student.degree_pursuing) + "):"
-				for i in range (0, len(student.project_rankings), 2):
-					print "Rank " + str(i + 1) + ":",
-					rank_i_project_id = student.project_rankings[i]
-					print dict_project_names[rank_i_project_id]
+                                if classes.duplicate_rankings:
+                                        for i in range (0, len(student.project_rankings), 2):
+                                                print "Rank " + str((i + 2)/2) + ":",
+                                                rank_i_project_id = student.project_rankings[i]
+                                                print dict_project_names[rank_i_project_id]
+                                else:
+                                        for i in range(0, len(student.project_rankings)):
+                                                print "Rank " + str(i + 1) + ":",
+                                                rank_i_project_id = student.project_rankings[i]
+                                                print dict_project_names[rank_i_project_id]
 				unranked = True
 				print
 	if (not(unranked)):
 		print "There were no students assigned to projects that they did not rank."
 	print
+
+def list_penalties(state):
+        dict_project_names = read_project_ids_and_names_from_input()
+        (projects, inv_cov_mat_tup, feasibles, students) = state
+        for p in projects:
+                project_name = dict_project_names[p.ID % classes.num_valid_projects]
+                #cur_project_output = cur_project_output + project_name + "\t"
+                cur_project_output.append(project_name)
+                print project_name + ": " + str([s.ID for s in p.students]) + " has the following penalties"
+                print "------------------------------"
+                numerics = []
+                for student in p.students:
+                        numerics.append(student.get_numerical_student_properties())
+                programs = [x[0] for x in numerics]
+                b_abilities = [x[1] for x in numerics]
+                c_abilities = [x[2] for x in numerics]
+                w_exp = [x[3] for x in numerics]
+                if 0 not in programs:
+                        print project_name + " has no MBA students"
+                if 1 not in programs:
+                        print project_name + " has no CS in MEng students"
+                if 3 not in c_abilities and 4 not in c_abilities:
+                        print project_name + " has no members who rated themselves at least 3 in coding ability."
+                #penalty for a lack of business ability
+                if 3 not in b_abilities and 4 not in b_abilities:
+                        print project_name + " has no members who rated themselves at least a 3 in business ability."
+                #penalty for lack of work experience
+                if 3 not in w_exp and 4 not in w_exp:
+                        print project_name + " has no members who have at least a 3 in work experience."
+                
 
 def list_low_interest_students(state):
 	dict_project_names = read_project_ids_and_names_from_input()
@@ -530,11 +605,14 @@ def list_low_interest_students(state):
 	stars = "***************************************************"
 	stars += "**********************************"
 	print stars
-	(projects, inv_cov_mat_tup, feasibles) = state
+	(projects, inv_cov_mat_tup, feasibles, students) = state
 	for p in projects:
 		for student in p.students:
 			# Get the student's rank of this project.
-			rank = (student.get_ranking(p.ID % classes.num_valid_projects)+1)/2
+                        if classes.duplicate_rankings:
+                                rank = (student.get_ranking(p.ID % classes.num_valid_projects)+1)/2
+                        else:
+                                rank = student.get_ranking(p.ID % classes.num_valid_projects)
 			# The student didn't rank this
 			if (rank > threshold):
 				print student.name + " (" + str(student.degree_pursuing) + "):"
@@ -543,10 +621,16 @@ def list_low_interest_students(state):
 				statement += str(dict_project_names[p.ID % classes.num_valid_projects]) + "."
 				print statement
 				print "This student's rankings are: "
-				for i in range (0, len(student.project_rankings),2):
-					print "Rank " + str(i + 1) + ":",
-					rank_i_project_id = student.project_rankings[i]
-					print dict_project_names[rank_i_project_id]
+                                if classes.duplicate_rankings:
+                                        for i in range (0, len(student.project_rankings),2):
+                                                print "Rank " + str((i + 2)/2) + ":",
+                                                rank_i_project_id = student.project_rankings[i]
+                                                print dict_project_names[rank_i_project_id]
+                                else:
+                                        for i in range (0, len(student.project_rankings),2):
+                                                print "Rank " + str(i + 1) + ":",b
+                                                rank_i_project_id = student.project_rankings[i]
+                                                print dict_project_names[rank_i_project_id]
 				unranked = True
 				print
 	if (not(unranked)):
