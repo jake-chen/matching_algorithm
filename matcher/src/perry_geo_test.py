@@ -46,7 +46,7 @@ def manual_schedule(use_file, students, sol, feasible_projects,  annealer, use_d
 	state = (sol, inv_cov_mat_tup, feasible_projects, students)
 	print "Initial energy is " + str(pg.energy(state))
 	# Manually set the annealing schedule.
-        state, e = annealer.anneal(state, 30000, 0.01, 200000, updates=20000)
+        state, e = annealer.anneal(state, 10000, 0.01, 54000, updates=20000)
 
         #auto = annealer.auto(state, 90)
         #print auto
